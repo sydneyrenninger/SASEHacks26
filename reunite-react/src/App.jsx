@@ -408,7 +408,8 @@ const translations = {
       oneMatch: "We found 1 potential match.",
       manyMatches: "We found {count} potential matches.",
       noReports: "No matching reports",
-      tryAgain: "Try changing the name, age, or location."
+      tryAgain: "Try changing the name, age, or location.",
+      startSearching: "Enter a name, age, or location to search reports."
     },
     card: {
       match: "Match",
@@ -1483,8 +1484,11 @@ function FindPerson({ people: availablePeople, openPerson }) {
   const [age, setAge] = useState("");
   const [location, setLocation] = useState("");
   const [sort, setSort] = useState("match");
+  const hasSearch = Boolean(name.trim() || age || location.trim());
 
   const results = useMemo(() => {
+    if (!hasSearch) return [];
+
     let filtered = availablePeople.filter((person) => {
       const nameOk = person.name.toLowerCase().includes(name.toLowerCase());
       const ageOk = !age || Math.abs(person.age - Number(age)) <= 5;
@@ -1497,7 +1501,7 @@ function FindPerson({ people: availablePeople, openPerson }) {
     if (sort === "name") filtered.sort((a, b) => a.name.localeCompare(b.name));
 
     return filtered;
-  }, [availablePeople, name, age, location, sort]);
+  }, [availablePeople, name, age, hasSearch, location, sort]);
 
   return (
     <main className="page">
@@ -1534,7 +1538,9 @@ function FindPerson({ people: availablePeople, openPerson }) {
         <div>
           <h2>{t("search.results")}</h2>
           <p>
-            {results.length === 1
+            {!hasSearch
+              ? t("search.startSearching")
+              : results.length === 1
               ? t("search.oneMatch")
               : t("search.manyMatches", { count: results.length })}
           </p>
@@ -1592,7 +1598,7 @@ function FindPerson({ people: availablePeople, openPerson }) {
   <div className="empty-state">
     <div className="empty-icon">⌕</div>
     <h3>{t("search.noReports")}</h3>
-    <p>{t("search.tryAgain")}</p>
+    <p>{hasSearch ? t("search.tryAgain") : t("search.startSearching")}</p>
   </div>
 )}
     </main>
