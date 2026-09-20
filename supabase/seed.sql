@@ -90,7 +90,7 @@ insert into public.sightings
   person_id,
   location_id,
   name,
-  estimated_age,
+  age,
   description,
   sighting_date,
   verification_status

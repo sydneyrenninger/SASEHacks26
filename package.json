@@ -2,8 +2,15 @@
   "name": "sasehacks26",
   "private": true,
   "type": "module",
+  "scripts": {
+    "backend": "node server.js",
+    "backend:dev": "node --watch server.js",
+    "backend:check": "node --check server.js"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.1",
     "express": "^5.2.1"
   },
   "devDependencies": {

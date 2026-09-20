@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { createMissingPerson, createSighting, getLocations, getPeople } from "./api";
 
 const LanguageContext = createContext(null);
 
@@ -1148,11 +1149,57 @@ const people = [
   }
 ];
 
+const fallbackPhotos = people.map((person) => person.photo);
+
+function formatDate(value) {
+  if (!value) return "Not provided";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+function normalizePerson(record, index) {
+  const location = record.last_seen_location || "Location not provided";
+  return {
+    id: record.id,
+    name: record.name || "Unnamed person",
+    age: record.age ?? "—",
+    genderKey: record.gender === "male" ? "male" : record.gender === "female" ? "female" : "unknown",
+    lastSeen: formatDate(record.last_seen_date),
+    location,
+    descriptionText: [record.description, record.clothing].filter(Boolean).join(" ") || "No description provided.",
+    tags: ["name", "location", "description"],
+    match: null,
+    photo: record.photo_url || fallbackPhotos[index % fallbackPhotos.length],
+    reported: 0,
+    verified: record.status === "found",
+    why: [],
+    raw: record
+  };
+}
+
 function App() {
   const [page, setPage] = useState("home");
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [reports, setReports] = useState([]);
+  const [displayPeople, setDisplayPeople] = useState(people);
+  const [locations, setLocations] = useState([]);
+  const [apiMessage, setApiMessage] = useState("");
   const [language, setLanguage] = useState(() => localStorage.getItem("reunite-language") || "English");
+
+  useEffect(() => {
+    Promise.all([getPeople(), getLocations()])
+      .then(([peopleResponse, locationResponse]) => {
+        if (peopleResponse.people?.length) {
+          setDisplayPeople(peopleResponse.people.map(normalizePerson));
+        }
+        setLocations(locationResponse.locations || []);
+      })
+      .catch(() => {
+        setApiMessage("Showing demo profiles. Start the backend to load live Supabase data.");
+      });
+  }, []);
 
   const go = (nextPage) => {
     setPage(nextPage);
@@ -1181,19 +1228,36 @@ function App() {
           setLanguage={changeLanguage}
         />
 
-        {page === "home" && <Home go={go} openPerson={openPerson} />}
-        {page === "find" && <FindPerson openPerson={openPerson} />}
+        {page === "home" && <Home people={displayPeople} go={go} openPerson={openPerson} />}
+        {apiMessage && <div className="demo-note">{apiMessage}</div>}
+        {page === "find" && <FindPerson people={displayPeople} openPerson={openPerson} />}
         {page === "report" && (
           <ReportPage
-            onSubmit={(report) => {
-              setReports((old) => [...old, report]);
+            onSubmit={async (report) => {
+              const created = await createMissingPerson({
+                name: report.missingName,
+                age: Number.parseInt(report.age, 10) || undefined,
+                gender: report.gender.toLowerCase(),
+                description: report.description,
+                clothing: report.clothing,
+                last_seen_date: `${report.date}T${report.time || "12:00"}:00`,
+                last_seen_location: report.location
+              });
+              setReports((old) => [...old, { ...report, id: created.person.id }]);
+              const refreshed = await getPeople();
+              setDisplayPeople((refreshed.people || []).map(normalizePerson));
               go("reports");
             }}
           />
         )}
         {page === "reports" && <ReportsPage reports={reports} />}
         {page === "person" && selectedPerson && (
-          <PersonDetail person={selectedPerson} go={go} />
+          <PersonDetail
+            person={selectedPerson}
+            locations={locations}
+            onSubmitSighting={createSighting}
+            go={go}
+          />
         )}
         {page === "contact" && <Contact />}
         {page === "about" && <About />}
@@ -1264,7 +1328,7 @@ function Header({ page, go, language, setLanguage }) {
   );
 }
 
-function Home({ go, openPerson }) {
+function Home({ people: homePeople, go, openPerson }) {
   const { t } = useLanguage();
   return (
     <main>
@@ -1317,7 +1381,7 @@ function Home({ go, openPerson }) {
           <span>Sample profiles for the Nepal-focused demo. Names and reports are fictional; the photos are stock images.</span>
         </div>
 
-        <PersonCarousel people={people} onOpen={openPerson} />
+        <PersonCarousel people={homePeople} onOpen={openPerson} />
       </section>
 
       <section className="callout">
@@ -1393,8 +1457,8 @@ function PersonCard({ person, onClick }) {
       <div className="card-photo-wrap">
         <img src={person.photo} alt={person.name} className="card-photo" />
         <div className="match-badge">
-          <strong>{person.match}%</strong>
-          <span>{t("card.match")}</span>
+          <strong>{person.match == null ? "—" : `${person.match}%`}</strong>
+          <span>{person.match == null ? "Live record" : t("card.match")}</span>
         </div>
       </div>
 
@@ -1414,7 +1478,7 @@ function PersonCard({ person, onClick }) {
   );
 }
 
-function FindPerson({ openPerson }) {
+function FindPerson({ people: availablePeople, openPerson }) {
   const { t } = useLanguage();
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
@@ -1422,7 +1486,7 @@ function FindPerson({ openPerson }) {
   const [sort, setSort] = useState("match");
 
   const results = useMemo(() => {
-    let filtered = people.filter((person) => {
+    let filtered = availablePeople.filter((person) => {
       const nameOk = person.name.toLowerCase().includes(name.toLowerCase());
       const ageOk = !age || Math.abs(person.age - Number(age)) <= 5;
       const locationOk = !location || person.location.toLowerCase().includes(location.toLowerCase());
@@ -1434,7 +1498,7 @@ function FindPerson({ openPerson }) {
     if (sort === "name") filtered.sort((a, b) => a.name.localeCompare(b.name));
 
     return filtered;
-  }, [name, age, location, sort]);
+  }, [availablePeople, name, age, location, sort]);
 
   return (
     <main className="page">
@@ -1536,10 +1600,40 @@ function FindPerson({ openPerson }) {
   );
 }
 
-function PersonDetail({ person, go }) {
+function PersonDetail({ person, locations, onSubmitSighting, go }) {
   const { t } = useLanguage();
   const [showSighting, setShowSighting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sightingLocation, setSightingLocation] = useState("");
+  const [sightingDate, setSightingDate] = useState("");
+  const [sightingDescription, setSightingDescription] = useState("");
+  const [sightingError, setSightingError] = useState("");
+  const [submittingSighting, setSubmittingSighting] = useState(false);
+
+  const submitSighting = async () => {
+    if (!sightingLocation || !sightingDate) {
+      setSightingError("Choose a location and date before submitting.");
+      return;
+    }
+
+    setSubmittingSighting(true);
+    setSightingError("");
+    try {
+      await onSubmitSighting({
+        person_id: person.id,
+        location_id: sightingLocation,
+        sighting_date: new Date(sightingDate).toISOString(),
+        description: sightingDescription,
+        name: person.name,
+        age: typeof person.age === "number" ? person.age : undefined
+      });
+      setSent(true);
+    } catch (error) {
+      setSightingError(error.message);
+    } finally {
+      setSubmittingSighting(false);
+    }
+  };
 
   return (
     <main className="page">
@@ -1575,7 +1669,7 @@ function PersonDetail({ person, go }) {
               <h3>{t("person.details")}</h3>
               <div className="detail-row"><span>{t("person.lastSeen")}</span><strong>{person.lastSeen}</strong></div>
               <div className="detail-row"><span>{t("person.location")}</span><strong>{person.location}</strong></div>
-              <div className="detail-row"><span>{t("person.description")}</span><strong>{t(`common.${person.descriptionKey}`)}</strong></div>
+              <div className="detail-row"><span>{t("person.description")}</span><strong>{person.descriptionText || t(`common.${person.descriptionKey}`)}</strong></div>
             </div>
 
             <div className="verification">
@@ -1603,17 +1697,25 @@ function PersonDetail({ person, go }) {
                 <p>{t("person.sightingText", { name: person.name })}</p>
                 <div className="field">
                   <label>{t("person.where")}</label>
-                  <input placeholder={t("person.wherePlaceholder")} />
+                  <select value={sightingLocation} onChange={(e) => setSightingLocation(e.target.value)}>
+                    <option value="">Choose a location</option>
+                    {locations.map((location) => (
+                      <option key={location.id} value={location.id}>{location.name || location.address}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="field">
                   <label>{t("person.when")}</label>
-                  <input type="datetime-local" />
+                  <input type="datetime-local" value={sightingDate} onChange={(e) => setSightingDate(e.target.value)} />
                 </div>
                 <div className="field">
                   <label>{t("person.additional")}</label>
-                  <textarea rows="4" placeholder={t("person.additionalPlaceholder")} />
+                  <textarea rows="4" value={sightingDescription} onChange={(e) => setSightingDescription(e.target.value)} placeholder={t("person.additionalPlaceholder")} />
                 </div>
-                <button className="primary-btn full" onClick={() => setSent(true)}>{t("person.submit")}</button>
+                {sightingError && <div className="form-error">{sightingError}</div>}
+                <button className="primary-btn full" onClick={submitSighting} disabled={submittingSighting}>
+                  {submittingSighting ? "Submitting..." : t("person.submit")}
+                </button>
               </>
             ) : (
               <div className="success">
@@ -1646,17 +1748,25 @@ function ReportPage({ onSubmit }) {
     photo: null
   });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!form.reporterName || !form.reporterPhone || !form.missingName || !form.location || !form.date) {
       setError(t("report.requiredError"));
       return;
     }
     setError("");
-    onSubmit({ ...form, submittedAt: new Date().toLocaleString() });
+    setSubmitting(true);
+    try {
+      await onSubmit({ ...form, submittedAt: new Date().toLocaleString() });
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -1717,7 +1827,9 @@ function ReportPage({ onSubmit }) {
         </section>
 
         {error && <div className="form-error">{error}</div>}
-        <button className="primary-btn" type="submit">{t("report.submitReport")}</button>
+        <button className="primary-btn" type="submit" disabled={submitting}>
+          {submitting ? "Submitting..." : t("report.submitReport")}
+        </button>
       </form>
     </main>
   );

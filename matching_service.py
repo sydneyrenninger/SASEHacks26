@@ -88,8 +88,8 @@ def name_score(missing_person: dict[str, Any], sighting: dict[str, Any]) -> dict
 
 
 def location_score(missing_person: dict[str, Any], sighting: dict[str, Any]) -> dict[str, Any]:
-    missing_loc = missing_person.get("location") or {}
-    sighting_loc = sighting.get("location") or {}
+    missing_loc = missing_person.get("location") or missing_person.get("locations") or {}
+    sighting_loc = sighting.get("location") or sighting.get("locations") or {}
     distance = haversine_km(
         missing_loc.get("latitude"),
         missing_loc.get("longitude"),
