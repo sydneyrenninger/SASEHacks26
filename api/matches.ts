@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { scoreMatch } from '../src/lib/matching'
-import { supabase } from './_lib/supabase'
-import { allowCors, backendError, handleOptions, methodNotAllowed } from './_lib/http'
+import { scoreMatch } from '../src/lib/matching.js'
+import { supabase } from './_lib/supabase.js'
+import { allowCors, backendError, handleOptions, methodNotAllowed } from './_lib/http.js'
 
 type LocationRow = {
   name?: string | null

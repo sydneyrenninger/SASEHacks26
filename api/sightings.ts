@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { supabase } from './_lib/supabase'
-import { allowCors, backendError, handleOptions, methodNotAllowed } from './_lib/http'
+import { supabase } from './_lib/supabase.js'
+import { allowCors, backendError, handleOptions, methodNotAllowed } from './_lib/http.js'
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   allowCors(response)
