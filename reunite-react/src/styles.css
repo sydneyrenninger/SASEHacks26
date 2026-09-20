@@ -129,6 +129,20 @@ button { cursor: pointer; }
 .search-preview { padding-top: 15px; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; margin-bottom: 25px; }
 .section-heading h2 { margin-bottom: 0; }
+.recent-sightings { padding-top: 20px; }
+.sighting-count { color: var(--blue-dark); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.sightings-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.sighting-row { display: flex; gap: 14px; min-width: 0; padding: 18px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 7px 19px rgba(26, 70, 79, .045); }
+.sighting-marker { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 50%; color: var(--blue); background: var(--blue-light); font-size: 20px; font-weight: 500; }
+.sighting-content { min-width: 0; flex: 1; }
+.sighting-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sighting-topline strong { color: var(--navy); }
+.sighting-meta { margin: 5px 0 8px; color: var(--blue-dark); font-size: 12px; font-weight: 700; }
+.sighting-description { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.status { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.status-pending { color: #8a5d16; background: #fff4d9; }
+.status-verified { color: #216342; background: #e3f4e9; }
+.status-unverified { color: #61727a; background: #edf2f4; }
 .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 
 .demo-note {
@@ -352,6 +366,7 @@ button { cursor: pointer; }
   .hero-content { width: 94%; padding-top: 20px; }
   .hero-wordmark-image { width: min(430px, 91vw); }
   .hero-actions { flex-direction: column; width: 100%; }
+  .sightings-list { grid-template-columns: 1fr; }
   .hero-btn { width: min(320px, 92vw); }
   .search-panel, .form-grid { grid-template-columns: 1fr; }
   .full-field { grid-column: auto; }

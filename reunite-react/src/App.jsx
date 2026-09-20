@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState
 } from "react";
-import { createMissingPerson, createSighting, getLocations, getMatches, getPeople } from "./api";
+import { createMissingPerson, createSighting, getLocations, getMatches, getPeople, getSightings } from "./api";
 
 const LanguageContext = createContext(null);
 
@@ -388,7 +388,15 @@ const translations = {
       helpEyebrow: "HELP SOMEONE GET HOME",
       helpTitle: "Have information about a missing person?",
       helpText: "Even a small detail may help connect a family with their loved one.",
-      searchReports: "Search reports"
+      searchReports: "Search reports",
+      sightingsEyebrow: "COMMUNITY REPORTS",
+      sightingsTitle: "Recent sightings",
+      sightingsText: "New information shared by people in the community. These reports still need human review.",
+      sightingsCount: "reports",
+      unknownPerson: "Name not provided",
+      unknownLocation: "Location not provided",
+      noDescription: "No description provided.",
+      noSightings: "No sightings have been submitted yet."
     },
     search: {
       eyebrow: "SEARCH",
@@ -1178,18 +1186,94 @@ function normalizePerson(record, index) {
   };
 }
 
+function levenshteinSimilarity(a, b) {
+  const first = (a || "").toLowerCase().trim();
+  const second = (b || "").toLowerCase().trim();
+  if (!first || !second) return 0;
+  if (first === second) return 1;
+
+  const matrix = Array.from({ length: first.length + 1 }, () => new Array(second.length + 1).fill(0));
+  for (let i = 0; i <= first.length; i += 1) matrix[i][0] = i;
+  for (let j = 0; j <= second.length; j += 1) matrix[0][j] = j;
+
+  for (let i = 1; i <= first.length; i += 1) {
+    for (let j = 1; j <= second.length; j += 1) {
+      const cost = first[i - 1] === second[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost);
+    }
+  }
+
+  const maxLength = Math.max(first.length, second.length);
+  return 1 - matrix[first.length][second.length] / maxLength;
+}
+
+// Rewards a query that is fully contained in the target (e.g. a city typed
+// into a full address) in addition to close full-string matches.
+function partialMatchScore(query, target) {
+  const q = (query || "").toLowerCase().trim();
+  const t = (target || "").toLowerCase().trim();
+  if (!q || !t) return 0;
+  if (t.includes(q)) return Math.min(1, 0.6 + 0.4 * (q.length / t.length));
+  return levenshteinSimilarity(q, t);
+}
+
+function ageProximityScore(delta) {
+  if (delta === 0) return 1;
+  if (delta <= 2) return 0.85;
+  if (delta <= 5) return 0.6;
+  if (delta <= 10) return 0.3;
+  return 0;
+}
+
+const SEARCH_MATCH_WEIGHTS = { name: 0.5, age: 0.25, location: 0.25 };
+
+// Scores a person purely against what the visitor actually typed into the
+// search form. Any criterion left blank is omitted entirely rather than
+// being scored as a match, so e.g. an untyped age never contributes to the
+// percentage shown.
+function computeSearchMatch(person, { name, age, location } = {}) {
+  const factors = {};
+
+  const nameQuery = name?.trim();
+  if (nameQuery) {
+    factors.name = { score: partialMatchScore(nameQuery, person.name), weight: SEARCH_MATCH_WEIGHTS.name };
+  }
+
+  const ageQuery = age === "" || age == null ? null : Number(age);
+  if (ageQuery != null && !Number.isNaN(ageQuery) && typeof person.age === "number") {
+    factors.age = { score: ageProximityScore(Math.abs(person.age - ageQuery)), weight: SEARCH_MATCH_WEIGHTS.age };
+  }
+
+  const locationQuery = location?.trim();
+  if (locationQuery) {
+    factors.location = { score: partialMatchScore(locationQuery, person.location), weight: SEARCH_MATCH_WEIGHTS.location };
+  }
+
+  const entries = Object.entries(factors);
+  if (!entries.length) return null;
+
+  const totalWeight = entries.reduce((sum, [, factor]) => sum + factor.weight, 0);
+  const score = entries.reduce((sum, [, factor]) => sum + factor.score * (factor.weight / totalWeight), 0);
+
+  return {
+    score: Math.round(score * 100),
+    factors
+  };
+}
+
 function App() {
   const [page, setPage] = useState("home");
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [reports, setReports] = useState([]);
   const [displayPeople, setDisplayPeople] = useState(people);
   const [locations, setLocations] = useState([]);
+  const [recentSightings, setRecentSightings] = useState([]);
   const [apiMessage, setApiMessage] = useState("");
   const [language, setLanguage] = useState(() => localStorage.getItem("reunite-language") || "English");
 
   useEffect(() => {
-    Promise.all([getPeople(), getLocations()])
-      .then(async ([peopleResponse, locationResponse]) => {
+    Promise.all([getPeople(), getLocations(), getSightings()])
+      .then(async ([peopleResponse, locationResponse, sightingsResponse]) => {
         if (peopleResponse.people?.length) {
           const livePeople = peopleResponse.people.map(normalizePerson);
           const scoredPeople = await Promise.all(livePeople.map(async (person) => {
@@ -1212,6 +1296,7 @@ function App() {
           setDisplayPeople(scoredPeople);
         }
         setLocations(locationResponse.locations || []);
+        setRecentSightings((sightingsResponse.sightings || []).slice(0, 6));
       })
       .catch(() => {
         setApiMessage("Showing demo profiles. Start the backend to load live Supabase data.");
@@ -1245,7 +1330,7 @@ function App() {
           setLanguage={changeLanguage}
         />
 
-        {page === "home" && <Home people={displayPeople} locations={locations} go={go} openPerson={openPerson} />}
+        {page === "home" && <Home people={displayPeople} sightings={recentSightings} go={go} openPerson={openPerson} />}
         {apiMessage && <div className="demo-note">{apiMessage}</div>}
         {page === "find" && <FindPerson people={displayPeople} openPerson={openPerson} />}
         {page === "report" && (
@@ -1345,7 +1430,7 @@ function Header({ page, go, language, setLanguage }) {
   );
 }
 
-function Home({ people: homePeople, locations, go, openPerson }) {
+function Home({ people: homePeople, sightings, go, openPerson }) {
   const { t } = useLanguage();
   return (
     <main>
@@ -1384,6 +1469,8 @@ function Home({ people: homePeople, locations, go, openPerson }) {
         </div>
       </section>
 
+      <RecentSightings sightings={sightings} />
+
       <section className="callout">
         <div>
           <span className="eyebrow light">{t("home.helpEyebrow")}</span>
@@ -1393,6 +1480,48 @@ function Home({ people: homePeople, locations, go, openPerson }) {
         <button className="white-btn" onClick={() => go("report")}>{t("home.reportButton")}</button>
       </section>
     </main>
+  );
+}
+
+function RecentSightings({ sightings }) {
+  const { t } = useLanguage();
+
+  return (
+    <section className="section recent-sightings">
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">{t("home.sightingsEyebrow")}</span>
+          <h2>{t("home.sightingsTitle")}</h2>
+          <p className="section-lede">{t("home.sightingsText")}</p>
+        </div>
+        <span className="sighting-count">{sightings.length} {t("home.sightingsCount")}</span>
+      </div>
+
+      {sightings.length ? (
+        <div className="sightings-list">
+          {sightings.map((sighting) => (
+            <article className="sighting-row" key={sighting.id}>
+              <div className="sighting-marker" aria-hidden="true">+</div>
+              <div className="sighting-content">
+                <div className="sighting-topline">
+                  <strong>{sighting.name || t("home.unknownPerson")}</strong>
+                  <span className={`status status-${sighting.verification_status || "unverified"}`}>
+                    {sighting.verification_status || "unverified"}
+                  </span>
+                </div>
+                <p className="sighting-meta">
+                  {sighting.locations?.name || t("home.unknownLocation")}
+                  {sighting.sighting_date && ` · ${formatDate(sighting.sighting_date)}`}
+                </p>
+                <p className="sighting-description">{sighting.description || t("home.noDescription")}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="empty-state"><p>{t("home.noSightings")}</p></div>
+      )}
+    </section>
   );
 }
 
@@ -1450,16 +1579,18 @@ function Step({ number, title, text }) {
   );
 }
 
-function PersonCard({ person, onClick }) {
+function PersonCard({ person, onClick, showMatch = true }) {
   const { t, language } = useLanguage();
   return (
     <article className="person-card" onClick={onClick} tabIndex="0" onKeyDown={(e) => e.key === "Enter" && onClick()}>
       <div className="card-photo-wrap">
         <img src={person.photo} alt={person.name} className="card-photo" />
-        <div className="match-badge">
-          <strong>{person.match == null ? "—" : `${person.match}%`}</strong>
-          <span>{person.match == null ? "Live record" : t("card.match")}</span>
-        </div>
+        {showMatch && (
+          <div className="match-badge">
+            <strong>{person.match == null ? "—" : `${person.match}%`}</strong>
+            <span>{person.match == null ? "Live record" : t("card.match")}</span>
+          </div>
+        )}
       </div>
 
       <div className="card-body">
@@ -1496,7 +1627,12 @@ function FindPerson({ people: availablePeople, openPerson }) {
       return nameOk && ageOk && locationOk;
     });
 
-    if (sort === "match") filtered.sort((a, b) => b.match - a.match);
+    filtered = filtered.map((person) => ({
+      ...person,
+      searchMatch: computeSearchMatch(person, { name, age, location })
+    }));
+
+    if (sort === "match") filtered.sort((a, b) => (b.searchMatch?.score ?? 0) - (a.searchMatch?.score ?? 0));
     if (sort === "age") filtered.sort((a, b) => a.age - b.age);
     if (sort === "name") filtered.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -1571,6 +1707,7 @@ function FindPerson({ people: availablePeople, openPerson }) {
         <div className="carousel-item" key={person.id}>
           <PersonCard
             person={person}
+            showMatch={false}
             onClick={() => openPerson(person)}
           />
         </div>
@@ -1617,9 +1754,11 @@ function PersonDetail({ person, locations, onSubmitSighting, go }) {
   const [sightingError, setSightingError] = useState("");
   const [submittingSighting, setSubmittingSighting] = useState(false);
 
+  const hasSearchMatch = Boolean(person.searchMatch);
+
   useEffect(() => {
     const personId = person.raw?.id;
-    if (!personId) return undefined;
+    if (!personId || hasSearchMatch) return undefined;
 
     let active = true;
     setMatchResult(null);
@@ -1636,21 +1775,35 @@ function PersonDetail({ person, locations, onSubmitSighting, go }) {
     return () => {
       active = false;
     };
-  }, [person.raw?.id]);
+  }, [person.raw?.id, hasSearchMatch]);
 
-  const displayedScore = matchResult
+  const factorLabel = (factor) => {
+    if (factor === "age") return t("search.ageOption");
+    return t(`common.${factor}`);
+  };
+
+  const displayedScore = hasSearchMatch
+    ? person.searchMatch.score
+    : matchResult
     ? Math.round(matchResult.score * 100)
     : person.match;
-  const displayedReasons = matchResult
+
+  const displayedReasons = hasSearchMatch
+    ? Object.entries(person.searchMatch.factors).map(([factor, detail]) => ({
+        label: factorLabel(factor),
+        score: `${Math.round(detail.score * 100)}%`,
+        reason: ""
+      }))
+    : matchResult
     ? Object.entries(matchResult.factors)
-        .filter(([, factor]) => factor.available)
+        .filter(([, detail]) => detail.available)
         .map(([factor, detail]) => ({
-          label: factor,
+          label: factorLabel(factor),
           score: `${Math.round(detail.score * 100)}%`,
           reason: detail.reason
         }))
     : person.why.map(([reasonKey, percent]) => ({
-        label: t(`common.${reasonKey}`),
+        label: factorLabel(reasonKey),
         score: percent,
         reason: ""
       }));

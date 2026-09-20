@@ -28,6 +28,10 @@ export function getLocations() {
   return request("/api/locations");
 }
 
+export function getSightings() {
+  return request("/api/sightings");
+}
+
 export function getMatches(missingPersonId, limit = 20) {
   return request("/api/matches", {
     method: "POST",
