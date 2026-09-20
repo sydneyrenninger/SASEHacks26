@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm --prefix reunite-react ci && npm --prefix reunite-react run build",
+  "outputDirectory": "reunite-react/dist",
+  "framework": "vite",
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs22.x"
+    }
+  }
+}

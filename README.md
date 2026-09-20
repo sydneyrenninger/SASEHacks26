@@ -42,18 +42,17 @@ To rank database sightings for an existing person, send:
 
 Match scores are information overlap scores, not identification probabilities.
 
-## Render deployment
+## Vercel deployment
 
-This repository includes `render.yaml` and `Dockerfile` for deploying both services on Render:
+The repository is configured as one Vercel project. Vercel builds the React app from `reunite-react` and deploys the TypeScript API functions from `api/` under the same domain.
 
 1. Push the repository to GitHub.
-2. In Render, choose **New > Blueprint** and select the repository.
-3. Create the backend environment variables on `reunite-api`:
+2. In Vercel, import the repository with the repository root as the project root.
+3. Add these production environment variables:
 	- `VITE_SUPABASE_URL`
 	- `VITE_SUPABASE_PUBLISHABLE_KEY`
-4. After the API deploys, copy its public URL into `VITE_API_BASE_URL` on `reunite-web`.
-5. Redeploy `reunite-web` after saving that variable.
+4. Deploy. The frontend calls `/api/people`, `/api/locations`, `/api/sightings`, and `/api/matches` on the same Vercel domain.
 
-The frontend is served as a Render Static Site from `reunite-react/dist`. The API uses the Docker image, which provides both Node.js and Python for the matching route. Render supplies `PORT` automatically; the API uses `PYTHON_BIN=/opt/venv/bin/python` in the image.
+`vercel.json` runs the `reunite-react` Vite build and publishes `reunite-react/dist`. The TypeScript API functions reuse `src/lib/matching.ts`, so the production demo no longer needs the Python service.
 
-For local development, leave `VITE_API_BASE_URL` unset and the React app will use `http://localhost:3000`.
+For local development, leave `VITE_API_BASE_URL` unset in `reunite-react` and run the existing Express server on `http://localhost:3000`. Set it only when the frontend and local API run on different hosts.
