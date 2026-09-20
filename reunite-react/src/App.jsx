@@ -480,7 +480,7 @@ const translations = {
       clothing: "Clothing / items",
       clothingPlaceholder: "What were they wearing? Did they have a backpack, phone, vehicle, etc.?",
       photo: "Photo",
-      photoHelp: "JPEG, PNG, WebP, or GIF, up to 5MB.",
+      photoHelp: "JPEG, PNG, WebP, or GIF, up to 3MB.",
       requiredError: "Please complete the required fields marked with *.",
       submitReport: "Submit Missing Person Report"
     },
@@ -662,7 +662,7 @@ const translations = {
       clothing: "Ropa / objetos",
       clothingPlaceholder: "¿Qué llevaba puesto? ¿Tenía mochila, teléfono, vehículo, etc.?",
       photo: "Fotografía",
-      photoHelp: "JPEG, PNG, WebP o GIF, hasta 5MB.",
+      photoHelp: "JPEG, PNG, WebP o GIF, hasta 3MB.",
       requiredError: "Completa los campos obligatorios marcados con *.",
       submitReport: "Enviar reporte de persona desaparecida"
     },
@@ -823,7 +823,7 @@ const translations = {
       clothing: "Vêtements / objets",
       clothingPlaceholder: "Que portait-elle ? Avait-elle un sac, un téléphone, un véhicule, etc. ?",
       photo: "Photo",
-      photoHelp: "JPEG, PNG, WebP ou GIF, jusqu'à 5 Mo.",
+      photoHelp: "JPEG, PNG, WebP ou GIF, jusqu'à 3 Mo.",
       requiredError: "Veuillez remplir les champs obligatoires marqués d'un *.",
       submitReport: "Envoyer le signalement de personne disparue"
     },

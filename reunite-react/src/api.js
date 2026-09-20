@@ -56,7 +56,10 @@ export function createSighting(sighting) {
   });
 }
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+// Vercel serverless functions hard-cap the request body around ~4.5MB, and
+// base64 inflates the raw file by ~33% — keep enough headroom that a real
+// upload never gets rejected by the platform before reaching our code.
+const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
@@ -72,7 +75,7 @@ function readFileAsBase64(file) {
 
 export async function uploadPhoto(file) {
   if (file.size > MAX_PHOTO_BYTES) {
-    throw new Error("Photo is too large (max 5MB).");
+    throw new Error("Photo is too large (max 3MB).");
   }
 
   const data = await readFileAsBase64(file);

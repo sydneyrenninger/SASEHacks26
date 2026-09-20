@@ -5,11 +5,14 @@ import { allowCors, backendError, handleOptions, methodNotAllowed } from './_lib
 
 export const config = {
   api: {
-    bodyParser: { sizeLimit: '6mb' },
+    bodyParser: { sizeLimit: '4.5mb' },
   },
 }
 
-const MAX_BYTES = 5 * 1024 * 1024
+// Vercel serverless functions hard-cap the request body around ~4.5MB
+// regardless of this config, and base64 inflates the raw file by ~33% —
+// keep enough headroom that a valid upload never gets 413'd by the platform.
+const MAX_BYTES = 3 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -30,7 +33,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   const buffer = Buffer.from(data, 'base64')
   if (buffer.length > MAX_BYTES) {
-    return response.status(400).json({ error: 'Photo is too large (max 5MB).' })
+    return response.status(400).json({ error: 'Photo is too large (max 3MB).' })
   }
 
   const extension = (typeof fileName === 'string' ? fileName.split('.').pop() : '') || contentType.split('/')[1] || 'jpg'

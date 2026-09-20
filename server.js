@@ -70,7 +70,9 @@ app.post('/api/locations', async (req, res) => {
   return res.status(201).json({ location: data })
 })
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+// Kept in sync with api/upload.ts's limit so behavior matches production,
+// where Vercel hard-caps the request body around ~4.5MB (base64 adds ~33%).
+const MAX_PHOTO_BYTES = 3 * 1024 * 1024
 const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
 app.post('/api/upload', async (req, res) => {
@@ -85,7 +87,7 @@ app.post('/api/upload', async (req, res) => {
 
   const buffer = Buffer.from(data, 'base64')
   if (buffer.length > MAX_PHOTO_BYTES) {
-    return res.status(400).json({ error: 'Photo is too large (max 5MB).' })
+    return res.status(400).json({ error: 'Photo is too large (max 3MB).' })
   }
 
   const extension = (typeof fileName === 'string' ? fileName.split('.').pop() : '') || contentType.split('/')[1] || 'jpg'
