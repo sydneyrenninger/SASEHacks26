@@ -4,6 +4,7 @@ import cors from 'cors'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 
 const app = express()
@@ -22,7 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-app.use(express.json())
+app.use(express.json({ limit: '6mb' }))
 app.use(cors())
 
 app.get('/health', (_req, res) => {
@@ -67,6 +68,38 @@ app.post('/api/locations', async (req, res) => {
   const { data, error } = await supabase.from('locations').insert(req.body || {}).select().single()
   if (error) return res.status(502).json({ error: 'Unable to create location', detail: error.message })
   return res.status(201).json({ location: data })
+})
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+app.post('/api/upload', async (req, res) => {
+  const { data, contentType, fileName } = req.body || {}
+
+  if (typeof data !== 'string' || !data) {
+    return res.status(400).json({ error: 'data (base64) is required' })
+  }
+  if (typeof contentType !== 'string' || !ALLOWED_PHOTO_TYPES.has(contentType)) {
+    return res.status(400).json({ error: 'contentType must be one of: ' + [...ALLOWED_PHOTO_TYPES].join(', ') })
+  }
+
+  const buffer = Buffer.from(data, 'base64')
+  if (buffer.length > MAX_PHOTO_BYTES) {
+    return res.status(400).json({ error: 'Photo is too large (max 5MB).' })
+  }
+
+  const extension = (typeof fileName === 'string' ? fileName.split('.').pop() : '') || contentType.split('/')[1] || 'jpg'
+  const safeExtension = extension.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+  const objectPath = `${randomUUID()}.${safeExtension}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('photos')
+    .upload(objectPath, buffer, { contentType, upsert: false })
+
+  if (uploadError) return res.status(502).json({ error: 'Unable to upload photo', detail: uploadError.message })
+
+  const { data: publicUrlData } = supabase.storage.from('photos').getPublicUrl(objectPath)
+  return res.status(201).json({ url: publicUrlData.publicUrl })
 })
 
 app.get('/api/sightings', async (_req, res) => {

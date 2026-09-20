@@ -55,3 +55,35 @@ export function createSighting(sighting) {
     body: JSON.stringify(sighting)
   });
 }
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      resolve(result.split(",")[1] || "");
+    };
+    reader.onerror = () => reject(new Error("Unable to read the selected photo."));
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function uploadPhoto(file) {
+  if (file.size > MAX_PHOTO_BYTES) {
+    throw new Error("Photo is too large (max 5MB).");
+  }
+
+  const data = await readFileAsBase64(file);
+  const payload = await request("/api/upload", {
+    method: "POST",
+    body: JSON.stringify({
+      data,
+      contentType: file.type,
+      fileName: file.name
+    })
+  });
+
+  return payload.url;
+}

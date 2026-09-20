@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState
 } from "react";
-import { createMissingPerson, createSighting, getLocations, getMatches, getPeople, getSightings } from "./api";
+import { createMissingPerson, createSighting, getLocations, getMatches, getPeople, getSightings, uploadPhoto } from "./api";
 
 const LanguageContext = createContext(null);
 
@@ -480,7 +480,7 @@ const translations = {
       clothing: "Clothing / items",
       clothingPlaceholder: "What were they wearing? Did they have a backpack, phone, vehicle, etc.?",
       photo: "Photo",
-      photoHelp: "For this demo, the file is selected locally and is not uploaded to a server.",
+      photoHelp: "JPEG, PNG, WebP, or GIF, up to 5MB.",
       requiredError: "Please complete the required fields marked with *.",
       submitReport: "Submit Missing Person Report"
     },
@@ -662,7 +662,7 @@ const translations = {
       clothing: "Ropa / objetos",
       clothingPlaceholder: "¿Qué llevaba puesto? ¿Tenía mochila, teléfono, vehículo, etc.?",
       photo: "Fotografía",
-      photoHelp: "En esta demostración, el archivo se selecciona localmente y no se sube a un servidor.",
+      photoHelp: "JPEG, PNG, WebP o GIF, hasta 5MB.",
       requiredError: "Completa los campos obligatorios marcados con *.",
       submitReport: "Enviar reporte de persona desaparecida"
     },
@@ -823,7 +823,7 @@ const translations = {
       clothing: "Vêtements / objets",
       clothingPlaceholder: "Que portait-elle ? Avait-elle un sac, un téléphone, un véhicule, etc. ?",
       photo: "Photo",
-      photoHelp: "Dans cette démonstration, le fichier est sélectionné localement et n'est pas envoyé à un serveur.",
+      photoHelp: "JPEG, PNG, WebP ou GIF, jusqu'à 5 Mo.",
       requiredError: "Veuillez remplir les champs obligatoires marqués d'un *.",
       submitReport: "Envoyer le signalement de personne disparue"
     },
@@ -1349,6 +1349,7 @@ function App() {
         {page === "report" && (
           <ReportPage
             onSubmit={async (report) => {
+              const photoUrl = report.photo ? await uploadPhoto(report.photo) : undefined;
               const created = await createMissingPerson({
                 name: report.missingName,
                 age: Number.parseInt(report.age, 10) || undefined,
@@ -1356,7 +1357,8 @@ function App() {
                 description: report.description,
                 clothing: report.clothing,
                 last_seen_date: `${report.date}T${report.time || "12:00"}:00`,
-                last_seen_location: report.location
+                last_seen_location: report.location,
+                photo_url: photoUrl
               });
               setReports((old) => [...old, { ...report, id: created.person.id }]);
               const refreshed = await getPeople();
@@ -2051,7 +2053,7 @@ function ReportPage({ onSubmit }) {
             </div>
             <div className="field full-field">
               <label>{t("report.photo")}</label>
-              <input type="file" accept="image/*" onChange={(e) => update("photo", e.target.files?.[0] || null)} />
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => update("photo", e.target.files?.[0] || null)} />
               <small>{t("report.photoHelp")}</small>
             </div>
           </div>
