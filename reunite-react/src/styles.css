@@ -65,12 +65,19 @@ button { cursor: pointer; }
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(10,18,23,.82), rgba(10,18,23,.93)),
-    url("/reunite-connected-people.png") center / cover no-repeat;
-  filter: grayscale(1) contrast(1.05);
+    linear-gradient(180deg, rgba(10,18,23,.55), rgba(10,18,23,.78)),
+    url("/nepal-flooding-thamel.jpg") center / cover no-repeat;
   pointer-events: none;
 }
 .hero-overlay { width: 100%; position: relative; z-index: 1; }
+.hero-credit {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  z-index: 1;
+  font-size: 10px;
+  color: rgba(255,255,255,.65);
+}
 .hero-content {
   width: min(880px, 92%);
   margin: 0 auto;
@@ -80,7 +87,6 @@ button { cursor: pointer; }
   flex-direction: column;
   align-items: center;
 }
-.hero-wordmark-image { display: none; }
 .hero-content::before {
   content: "Reunite";
   display: block;
@@ -123,9 +129,12 @@ button { cursor: pointer; }
 .section { width: min(1120px, 90%); margin: auto; padding: 80px 0; }
 .intro { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; }
 .eyebrow { color: var(--blue); font-size: 12px; font-weight: 800; letter-spacing: .16em; }
-.context { width: min(1120px, 90%); margin: auto; padding: 60px 0 10px; }
+.context { width: min(1120px, 90%); margin: auto; padding: 60px 0 10px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 50px; align-items: center; }
 .context h2 { font-family: "DM Sans", Arial, sans-serif; font-weight: 800; color: var(--navy); font-size: clamp(26px, 3.6vw, 36px); line-height: 1.15; margin: 9px 0 18px; }
-.context p { max-width: 760px; line-height: 1.8; color: var(--muted); margin: 0 0 14px; }
+.context p { line-height: 1.8; color: var(--muted); margin: 0 0 14px; }
+.context-photo { margin: 0; }
+.context-photo img { width: 100%; height: 300px; object-fit: cover; border-radius: 6px; display: block; }
+.context-photo figcaption { margin-top: 8px; font-size: 11px; color: var(--muted); }
 .section h2, .page-header h1 { font-family: "DM Sans", Arial, sans-serif; font-weight: 800; color: var(--navy); }
 .section h2 { font-size: clamp(30px, 4vw, 45px); line-height: 1.08; margin: 9px 0 17px; }
 .intro > div > p { line-height: 1.8; color: var(--muted); }
@@ -363,7 +372,7 @@ button { cursor: pointer; }
   .nav-right { margin-left: auto; }
   .hero { min-height: 620px; background-position: center; }
   .hero-wordmark-image { width: min(500px, 82vw); }
-  .intro, .cards-grid, .results-list, .about-grid { grid-template-columns: 1fr; }
+  .intro, .cards-grid, .results-list, .about-grid, .context { grid-template-columns: 1fr; }
   .carousel-item { flex-basis: calc((100% - 18px) / 2); min-width: 300px; }
   .search-panel { grid-template-columns: 1fr 1fr; }
   .footer { grid-template-columns: 1fr; }

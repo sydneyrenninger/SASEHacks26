@@ -21,7 +21,8 @@ const GOOGLE_TRANSLATE_ENDPOINT =
 const LANGUAGE_CODES = {
   English: "en",
   Español: "es",
-  Français: "fr"
+  Français: "fr",
+  Nepali: "ne"
 };
 
 const translationCache = new Map();
@@ -401,7 +402,8 @@ const translations = {
       contextEyebrow: "WHY WE BUILT THIS",
       contextTitle: "Responding to the flooding in Nepal",
       contextText1: "Nepal's monsoon season brings recurring floods and landslides that damage roads, disrupt phone networks, and force entire communities to evacuate on short notice. In the chaos, families are often separated with no reliable way to learn who is safe or where to look for a loved one.",
-      contextText2: "Reunite gives families, volunteers, and aid workers a shared place to report someone missing, log sightings from the field, and reconnect people once it's safe to do so. It doesn't replace emergency services — it's a lightweight tool to close the information gap while official response efforts are underway."
+      contextText2: "Reunite gives families, volunteers, and aid workers a shared place to report someone missing, log sightings from the field, and reconnect people once it's safe to do so. It doesn't replace emergency services — it's a lightweight tool to close the information gap while official response efforts are underway.",
+      contextPhotoAlt: "Aerial view of a landslide scar cutting across terraced hillside farmland near a village in Rasuwa District, Nepal."
     },
     search: {
       eyebrow: "SEARCH",
@@ -1443,6 +1445,7 @@ function Header({ page, go, language, setLanguage }) {
               <option>English</option>
               <option>Español</option>
               <option>Français</option>
+              <option value="Nepali">नेपाली</option>
             </select>
           </label>
           <button className="about-link" onClick={() => go("about")}>
@@ -1461,11 +1464,6 @@ function Home({ people: homePeople, sightings, go, openPerson }) {
       <section className="hero">
         <div className="hero-overlay">
           <div className="hero-content">
-            <img
-              className="hero-wordmark-image"
-              src="/reunite-wordmark-transparent.png"
-              alt={t("home.heroAlt")}
-            />
             <p>{t("home.tagline")}</p>
             <div className="hero-actions">
               <button className="hero-btn hero-btn-primary" onClick={() => go("find")}>
@@ -1477,13 +1475,17 @@ function Home({ people: homePeople, sightings, go, openPerson }) {
             </div>
           </div>
         </div>
+        <span className="hero-credit notranslate">Flooding, Thamel, Kathmandu — Felix Dance (CC BY 2.0)</span>
       </section>
 
       <section className="context">
-        <span className="eyebrow">{t("home.contextEyebrow")}</span>
-        <h2>{t("home.contextTitle")}</h2>
-        <p>{t("home.contextText1")}</p>
-        <p>{t("home.contextText2")}</p>
+        <div className="context-text">
+          <span className="eyebrow">{t("home.contextEyebrow")}</span>
+          <h2>{t("home.contextTitle")}</h2>
+          <p>{t("home.contextText1")}</p>
+          <p>{t("home.contextText2")}</p>
+        </div>
+        <ContextPhoto />
       </section>
 
       <section className="section intro">
@@ -1607,6 +1609,18 @@ function Step({ number, title, text }) {
         <p>{text}</p>
       </div>
     </div>
+  );
+}
+
+function ContextPhoto() {
+  const { t } = useLanguage();
+  return (
+    <figure className="context-photo">
+      <img src="/nepal-landslide-rasuwa.jpg" alt={t("home.contextPhotoAlt")} />
+      <figcaption className="notranslate">
+        Landslide, Rasuwa District, Nepal — Shree Krishna Dhital (CC BY-SA 3.0)
+      </figcaption>
+    </figure>
   );
 }
 
@@ -2137,9 +2151,12 @@ function About() {
         <p>{t("about.subtitle")}</p>
       </div>
       <div className="context">
-        <h2>{t("home.contextTitle")}</h2>
-        <p>{t("home.contextText1")}</p>
-        <p>{t("home.contextText2")}</p>
+        <div className="context-text">
+          <h2>{t("home.contextTitle")}</h2>
+          <p>{t("home.contextText1")}</p>
+          <p>{t("home.contextText2")}</p>
+        </div>
+        <ContextPhoto />
       </div>
       <div className="about-grid">
         <div className="info-card"><h3>{t("about.searchTitle")}</h3><p>{t("about.searchText")}</p></div>
