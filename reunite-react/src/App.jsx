@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -1314,6 +1315,24 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleSightingSubmitted = (created) => {
+    const sighting = created?.sighting;
+    if (sighting) {
+      setRecentSightings((prev) => [sighting, ...prev].slice(0, 6));
+    }
+
+    const personId = sighting?.person_id;
+    if (!personId) return;
+
+    const bumpReported = (candidate) =>
+      candidate.raw?.id === personId
+        ? { ...candidate, reported: (candidate.reported || 0) + 1 }
+        : candidate;
+
+    setSelectedPerson((prev) => (prev ? bumpReported(prev) : prev));
+    setDisplayPeople((prev) => prev.map(bumpReported));
+  };
+
   const changeLanguage = (nextLanguage) => {
     setLanguage(nextLanguage);
     localStorage.setItem("reunite-language", nextLanguage);
@@ -1358,6 +1377,7 @@ function App() {
             person={selectedPerson}
             locations={locations}
             onSubmitSighting={createSighting}
+            onSightingSubmitted={handleSightingSubmitted}
             go={go}
           />
         )}
@@ -1742,7 +1762,7 @@ function FindPerson({ people: availablePeople, openPerson }) {
   );
 }
 
-function PersonDetail({ person, locations, onSubmitSighting, go }) {
+function PersonDetail({ person, locations, onSubmitSighting, onSightingSubmitted, go }) {
   const { t } = useLanguage();
   const [showSighting, setShowSighting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -1756,26 +1776,23 @@ function PersonDetail({ person, locations, onSubmitSighting, go }) {
 
   const hasSearchMatch = Boolean(person.searchMatch);
 
-  useEffect(() => {
+  const loadMatchResult = useCallback(async () => {
     const personId = person.raw?.id;
-    if (!personId || hasSearchMatch) return undefined;
+    if (!personId || hasSearchMatch) return;
 
-    let active = true;
-    setMatchResult(null);
     setMatchError("");
-
-    getMatches(personId)
-      .then((payload) => {
-        if (active) setMatchResult(payload.matches?.[0]?.result || null);
-      })
-      .catch((error) => {
-        if (active) setMatchError(error.message);
-      });
-
-    return () => {
-      active = false;
-    };
+    try {
+      const payload = await getMatches(personId);
+      setMatchResult(payload.matches?.[0]?.result || null);
+    } catch (error) {
+      setMatchError(error.message);
+    }
   }, [person.raw?.id, hasSearchMatch]);
+
+  useEffect(() => {
+    setMatchResult(null);
+    loadMatchResult();
+  }, [loadMatchResult]);
 
   const factorLabel = (factor) => {
     if (factor === "age") return t("search.ageOption");
@@ -1817,7 +1834,7 @@ function PersonDetail({ person, locations, onSubmitSighting, go }) {
     setSubmittingSighting(true);
     setSightingError("");
     try {
-      await onSubmitSighting({
+      const created = await onSubmitSighting({
         person_id: person.id,
         location_id: sightingLocation,
         sighting_date: new Date(sightingDate).toISOString(),
@@ -1826,6 +1843,8 @@ function PersonDetail({ person, locations, onSubmitSighting, go }) {
         age: typeof person.age === "number" ? person.age : undefined
       });
       setSent(true);
+      onSightingSubmitted?.(created);
+      loadMatchResult();
     } catch (error) {
       setSightingError(error.message);
     } finally {
