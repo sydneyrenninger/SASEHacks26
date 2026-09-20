@@ -22,14 +22,6 @@ The API runs at `http://localhost:3000`.
 
 Endpoints:
 
-- `GET /health`
-- `GET /api/people?name=...`
-- `POST /api/people`
-- `GET /api/locations`
-- `POST /api/locations`
-- `GET /api/sightings`
-- `POST /api/sightings`
-- `POST /api/matches`
 
 To rank database sightings for an existing person, send:
 
@@ -56,3 +48,13 @@ The repository is configured as one Vercel project. Vercel builds the React app 
 `vercel.json` runs the `reunite-react` Vite build and publishes `reunite-react/dist`. The TypeScript API functions reuse `src/lib/matching.ts`, so the production demo no longer needs the Python service.
 
 For local development, leave `VITE_API_BASE_URL` unset in `reunite-react` and run the existing Express server on `http://localhost:3000`. Set it only when the frontend and local API run on different hosts.
+
+### Mapbox
+
+The home page map uses Mapbox GL. Add a public Mapbox access token to `reunite-react/.env`:
+
+```env
+VITE_MAPBOX_ACCESS_TOKEN=pk.your-public-token
+```
+
+The token is intended for browser use, but restrict it to your deployed domain in Mapbox. Without a token, the page shows a clear map setup state instead of a broken blank area. The Nepal demo people are fictional; their mapped locations are real landmarks and cities.
