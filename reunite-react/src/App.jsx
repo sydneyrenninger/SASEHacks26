@@ -506,13 +506,7 @@ const translations = {
     about: {
       eyebrow: "ABOUT",
       title: "About Reunite",
-      subtitle: "A lightweight tool built to help families and aid workers find missing loved ones during Nepal's flooding crisis.",
-      searchTitle: "Search",
-      searchText: "Search reports using names, age, location, descriptions, and other details.",
-      reportsTitle: "Reports",
-      reportsText: "Keep missing-person information organized in one place.",
-      communityTitle: "Community",
-      communityText: "Allow people to submit useful sighting information."
+      subtitle: "A lightweight tool built to help families and aid workers find missing loved ones during Nepal's flooding crisis."
     },
     footer: {
       tagline: "Helping families find the people they love.",
@@ -694,13 +688,7 @@ const translations = {
     about: {
       eyebrow: "ACERCA DE",
       title: "Acerca de Reunite",
-      subtitle: "Una herramienta sencilla creada para ayudar a familias y trabajadores humanitarios a encontrar a sus seres queridos durante la crisis de inundaciones en Nepal.",
-      searchTitle: "Búsqueda",
-      searchText: "Busca reportes usando nombres, edad, ubicación, descripciones y otros detalles.",
-      reportsTitle: "Reportes",
-      reportsText: "Mantén organizada la información de personas desaparecidas en un solo lugar.",
-      communityTitle: "Comunidad",
-      communityText: "Permite que las personas envíen información útil sobre avistamientos."
+      subtitle: "Una herramienta sencilla creada para ayudar a familias y trabajadores humanitarios a encontrar a sus seres queridos durante la crisis de inundaciones en Nepal."
     },
     footer: {
       tagline: "Ayudamos a las familias a encontrar a las personas que aman.",
@@ -861,13 +849,7 @@ const translations = {
     about: {
       eyebrow: "À PROPOS",
       title: "À propos de Reunite",
-      subtitle: "Un outil simple conçu pour aider les familles et les travailleurs humanitaires à retrouver leurs proches pendant la crise des inondations au Népal.",
-      searchTitle: "Recherche",
-      searchText: "Recherchez des signalements à l'aide des noms, de l'âge, du lieu, des descriptions et d'autres détails.",
-      reportsTitle: "Signalements",
-      reportsText: "Gardez les informations sur les personnes disparues organisées au même endroit.",
-      communityTitle: "Communauté",
-      communityText: "Permettez aux utilisateurs de transmettre des informations utiles sur des observations."
+      subtitle: "Un outil simple conçu pour aider les familles et les travailleurs humanitaires à retrouver leurs proches pendant la crise des inondations au Népal."
     },
     footer: {
       tagline: "Aider les familles à retrouver les personnes qu'elles aiment.",
@@ -1278,8 +1260,8 @@ function App() {
   const [apiMessage, setApiMessage] = useState("");
   const [language, setLanguage] = useState(() => localStorage.getItem("reunite-language") || "English");
 
-  useEffect(() => {
-    Promise.all([getPeople(), getLocations(), getSightings()])
+  const loadDirectoryData = useCallback(() => {
+    return Promise.all([getPeople(), getLocations(), getSightings()])
       .then(async ([peopleResponse, locationResponse, sightingsResponse]) => {
         if (peopleResponse.people?.length) {
           const livePeople = peopleResponse.people.map(normalizePerson);
@@ -1309,6 +1291,12 @@ function App() {
         setApiMessage("Showing demo profiles. Start the backend to load live Supabase data.");
       });
   }, []);
+
+  useEffect(() => {
+    if (page === "home" || page === "find") {
+      loadDirectoryData();
+    }
+  }, [page, loadDirectoryData]);
 
   const go = (nextPage) => {
     setPage(nextPage);
@@ -2157,11 +2145,6 @@ function About() {
           <p>{t("home.contextText2")}</p>
         </div>
         <ContextPhoto />
-      </div>
-      <div className="about-grid">
-        <div className="info-card"><h3>{t("about.searchTitle")}</h3><p>{t("about.searchText")}</p></div>
-        <div className="info-card"><h3>{t("about.reportsTitle")}</h3><p>{t("about.reportsText")}</p></div>
-        <div className="info-card"><h3>{t("about.communityTitle")}</h3><p>{t("about.communityText")}</p></div>
       </div>
     </main>
   );
