@@ -397,7 +397,11 @@ const translations = {
       unknownPerson: "Name not provided",
       unknownLocation: "Location not provided",
       noDescription: "No description provided.",
-      noSightings: "No sightings have been submitted yet."
+      noSightings: "No sightings have been submitted yet.",
+      contextEyebrow: "WHY WE BUILT THIS",
+      contextTitle: "Responding to the flooding in Nepal",
+      contextText1: "Nepal's monsoon season brings recurring floods and landslides that damage roads, disrupt phone networks, and force entire communities to evacuate on short notice. In the chaos, families are often separated with no reliable way to learn who is safe or where to look for a loved one.",
+      contextText2: "Reunite gives families, volunteers, and aid workers a shared place to report someone missing, log sightings from the field, and reconnect people once it's safe to do so. It doesn't replace emergency services — it's a lightweight tool to close the information gap while official response efforts are underway."
     },
     search: {
       eyebrow: "SEARCH",
@@ -500,7 +504,7 @@ const translations = {
     about: {
       eyebrow: "ABOUT",
       title: "About Reunite",
-      subtitle: "A simple platform concept for connecting missing-person reports with possible sightings and matches.",
+      subtitle: "A lightweight tool built to help families and aid workers find missing loved ones during Nepal's flooding crisis.",
       searchTitle: "Search",
       searchText: "Search reports using names, age, location, descriptions, and other details.",
       reportsTitle: "Reports",
@@ -688,7 +692,7 @@ const translations = {
     about: {
       eyebrow: "ACERCA DE",
       title: "Acerca de Reunite",
-      subtitle: "Un concepto de plataforma sencilla para conectar reportes de personas desaparecidas con posibles avistamientos y coincidencias.",
+      subtitle: "Una herramienta sencilla creada para ayudar a familias y trabajadores humanitarios a encontrar a sus seres queridos durante la crisis de inundaciones en Nepal.",
       searchTitle: "Búsqueda",
       searchText: "Busca reportes usando nombres, edad, ubicación, descripciones y otros detalles.",
       reportsTitle: "Reportes",
@@ -855,7 +859,7 @@ const translations = {
     about: {
       eyebrow: "À PROPOS",
       title: "À propos de Reunite",
-      subtitle: "Un concept de plateforme simple qui relie les signalements de personnes disparues à des observations et des correspondances possibles.",
+      subtitle: "Un outil simple conçu pour aider les familles et les travailleurs humanitaires à retrouver leurs proches pendant la crise des inondations au Népal.",
       searchTitle: "Recherche",
       searchText: "Recherchez des signalements à l'aide des noms, de l'âge, du lieu, des descriptions et d'autres détails.",
       reportsTitle: "Signalements",
@@ -1473,6 +1477,13 @@ function Home({ people: homePeople, sightings, go, openPerson }) {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="context">
+        <span className="eyebrow">{t("home.contextEyebrow")}</span>
+        <h2>{t("home.contextTitle")}</h2>
+        <p>{t("home.contextText1")}</p>
+        <p>{t("home.contextText2")}</p>
       </section>
 
       <section className="section intro">
@@ -2124,6 +2135,11 @@ function About() {
         <span className="eyebrow">{t("about.eyebrow")}</span>
         <h1>{t("about.title")}</h1>
         <p>{t("about.subtitle")}</p>
+      </div>
+      <div className="context">
+        <h2>{t("home.contextTitle")}</h2>
+        <p>{t("home.contextText1")}</p>
+        <p>{t("home.contextText2")}</p>
       </div>
       <div className="about-grid">
         <div className="info-card"><h3>{t("about.searchTitle")}</h3><p>{t("about.searchText")}</p></div>

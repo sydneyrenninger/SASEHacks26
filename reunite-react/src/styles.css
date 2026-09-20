@@ -123,6 +123,9 @@ button { cursor: pointer; }
 .section { width: min(1120px, 90%); margin: auto; padding: 80px 0; }
 .intro { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; }
 .eyebrow { color: var(--blue); font-size: 12px; font-weight: 800; letter-spacing: .16em; }
+.context { width: min(1120px, 90%); margin: auto; padding: 60px 0 10px; }
+.context h2 { font-family: "DM Sans", Arial, sans-serif; font-weight: 800; color: var(--navy); font-size: clamp(26px, 3.6vw, 36px); line-height: 1.15; margin: 9px 0 18px; }
+.context p { max-width: 760px; line-height: 1.8; color: var(--muted); margin: 0 0 14px; }
 .section h2, .page-header h1 { font-family: "DM Sans", Arial, sans-serif; font-weight: 800; color: var(--navy); }
 .section h2 { font-size: clamp(30px, 4vw, 45px); line-height: 1.08; margin: 9px 0 17px; }
 .intro > div > p { line-height: 1.8; color: var(--muted); }
