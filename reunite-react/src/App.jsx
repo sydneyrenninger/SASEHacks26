@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState
 } from "react";
-import { createMissingPerson, createSighting, getLocations, getPeople } from "./api";
+import { createMissingPerson, createSighting, getLocations, getMatches, getPeople } from "./api";
 
 const LanguageContext = createContext(null);
 
@@ -1190,9 +1190,27 @@ function App() {
 
   useEffect(() => {
     Promise.all([getPeople(), getLocations()])
-      .then(([peopleResponse, locationResponse]) => {
+      .then(async ([peopleResponse, locationResponse]) => {
         if (peopleResponse.people?.length) {
-          setDisplayPeople(peopleResponse.people.map(normalizePerson));
+          const livePeople = peopleResponse.people.map(normalizePerson);
+          const scoredPeople = await Promise.all(livePeople.map(async (person) => {
+            try {
+              const matchResponse = await getMatches(person.raw.id);
+              const topResult = matchResponse.matches?.[0]?.result;
+              if (!topResult) return person;
+
+              return {
+                ...person,
+                match: Math.round(topResult.score * 100),
+                why: Object.entries(topResult.factors)
+                  .filter(([, factor]) => factor.available)
+                  .map(([factor, factorDetail]) => [factor, `${Math.round(factorDetail.score * 100)}%`])
+              };
+            } catch {
+              return person;
+            }
+          }));
+          setDisplayPeople(scoredPeople);
         }
         setLocations(locationResponse.locations || []);
       })
@@ -1604,11 +1622,51 @@ function PersonDetail({ person, locations, onSubmitSighting, go }) {
   const { t } = useLanguage();
   const [showSighting, setShowSighting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [matchResult, setMatchResult] = useState(null);
+  const [matchError, setMatchError] = useState("");
   const [sightingLocation, setSightingLocation] = useState("");
   const [sightingDate, setSightingDate] = useState("");
   const [sightingDescription, setSightingDescription] = useState("");
   const [sightingError, setSightingError] = useState("");
   const [submittingSighting, setSubmittingSighting] = useState(false);
+
+  useEffect(() => {
+    const personId = person.raw?.id;
+    if (!personId) return undefined;
+
+    let active = true;
+    setMatchResult(null);
+    setMatchError("");
+
+    getMatches(personId)
+      .then((payload) => {
+        if (active) setMatchResult(payload.matches?.[0]?.result || null);
+      })
+      .catch((error) => {
+        if (active) setMatchError(error.message);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [person.raw?.id]);
+
+  const displayedScore = matchResult
+    ? Math.round(matchResult.score * 100)
+    : person.match;
+  const displayedReasons = matchResult
+    ? Object.entries(matchResult.factors)
+        .filter(([, factor]) => factor.available)
+        .map(([factor, detail]) => ({
+          label: factor,
+          score: `${Math.round(detail.score * 100)}%`,
+          reason: detail.reason
+        }))
+    : person.why.map(([reasonKey, percent]) => ({
+        label: t(`common.${reasonKey}`),
+        score: percent,
+        reason: ""
+      }));
 
   const submitSighting = async () => {
     if (!sightingLocation || !sightingDate) {
@@ -1649,20 +1707,21 @@ function PersonDetail({ person, locations, onSubmitSighting, go }) {
                 <p>{person.age} · {t(`gender.${person.genderKey}`)}</p>
               </div>
               <div className="large-match">
-                <strong>{person.match}%</strong>
-                <span>{t("card.match")}</span>
+                <strong>{displayedScore == null ? "—" : `${displayedScore}%`}</strong>
+                <span>{matchResult?.label || (displayedScore == null ? "No score yet" : t("card.match"))}</span>
               </div>
             </div>
 
             <div className="detail-section">
               <h3>{t("person.why")}</h3>
-              {person.why.map(([reasonKey, percent]) => (
-                <div className="reason" key={reasonKey}>
+              {displayedReasons.map(({ label, score, reason }) => (
+                <div className="reason" key={label} title={reason}>
                   <span className="reason-dot">✓</span>
-                  <span>{t(`common.${reasonKey}`)}</span>
-                  <strong>{percent}</strong>
+                  <span>{label}</span>
+                  <strong>{score}</strong>
                 </div>
               ))}
+              {matchError && <p className="form-error">Unable to load live match details: {matchError}</p>}
             </div>
 
             <div className="detail-section">
