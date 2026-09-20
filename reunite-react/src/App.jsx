@@ -7,7 +7,6 @@ import React, {
   useState
 } from "react";
 import { createMissingPerson, createSighting, getLocations, getMatches, getPeople } from "./api";
-import "mapbox-gl/dist/mapbox-gl.css";
 
 const LanguageContext = createContext(null);
 
@@ -385,12 +384,6 @@ const translations = {
       step2Text: "Search reports and compare potential matches.",
       step3Title: "Report a sighting",
       step3Text: "Share useful information with the person who filed the report.",
-      mapEyebrow: "REPORTS ACROSS NEPAL",
-      mapTitle: "See where people were last seen",
-      mapText: "Explore the locations attached to missing-person reports. A pin is a place to investigate, not proof of a match.",
-      mapNeedsToken: "Mapbox map is ready to connect",
-      mapNeedsTokenText: "Add VITE_MAPBOX_ACCESS_TOKEN to show the live Nepal map and interactive pins.",
-      mapReports: "reports mapped",
       viewAll: "View all results →",
       helpEyebrow: "HELP SOMEONE GET HOME",
       helpTitle: "Have information about a missing person?",
@@ -1390,8 +1383,6 @@ function Home({ people: homePeople, locations, go, openPerson }) {
         </div>
       </section>
 
-      <NepalMap people={homePeople} locations={locations} onOpen={openPerson} go={go} />
-
       <section className="callout">
         <div>
           <span className="eyebrow light">{t("home.helpEyebrow")}</span>
@@ -1401,124 +1392,6 @@ function Home({ people: homePeople, locations, go, openPerson }) {
         <button className="white-btn" onClick={() => go("report")}>{t("home.reportButton")}</button>
       </section>
     </main>
-  );
-}
-
-function NepalMap({ people: mappedPeople, locations, onOpen, go }) {
-  const mapContainerRef = useRef(null);
-  const mapRef = useRef(null);
-  const markersRef = useRef([]);
-  const { t } = useLanguage();
-  const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-  const hasValidToken = typeof token === "string" && token.startsWith("pk.");
-  const [mapError, setMapError] = useState("");
-  const [mapReady, setMapReady] = useState(false);
-
-  const points = mappedPeople.map((person) => {
-    const locationName = person.raw?.last_seen_location || person.location;
-    const location = locations.find((candidate) =>
-      candidate.name?.toLowerCase() === locationName?.toLowerCase()
-    );
-    const latitude = Number(location?.latitude);
-    const longitude = Number(location?.longitude);
-    return location && Number.isFinite(latitude) && Number.isFinite(longitude)
-      ? { person, location, latitude, longitude }
-      : null;
-  }).filter(Boolean);
-
-  useEffect(() => {
-    if (!hasValidToken || !mapContainerRef.current || mapRef.current) return undefined;
-
-    let cancelled = false;
-    setMapError("");
-    setMapReady(false);
-
-    import("mapbox-gl").then(({ default: mapboxgl }) => {
-      if (cancelled) return;
-      mapboxgl.accessToken = token;
-      const map = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/light-v11",
-        center: [84.124, 28.3949],
-        zoom: 6.3,
-        cooperativeGestures: true
-      });
-      map.addControl(new mapboxgl.NavigationControl(), "top-right");
-      mapRef.current = map;
-
-      map.on("load", () => {
-        const bounds = new mapboxgl.LngLatBounds();
-        points.forEach(({ person, location, latitude, longitude }) => {
-          bounds.extend([longitude, latitude]);
-          const marker = new mapboxgl.Marker({ color: "#0b6d8d" })
-            .setLngLat([longitude, latitude])
-            .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(
-              `<strong>${person.name}</strong><br/><span>${location.name}</span>`
-            ))
-            .addTo(map);
-          marker.getElement().addEventListener("click", () => onOpen(person));
-          markersRef.current.push(marker);
-        });
-        if (!bounds.isEmpty()) {
-          map.fitBounds(bounds, { padding: 70, maxZoom: 8.5, duration: 0 });
-        }
-        setMapReady(true);
-      });
-      map.on("error", (event) => {
-        const message = event?.error?.message || "Mapbox could not load the map style.";
-        setMapError(message);
-      });
-    }).catch((error) => {
-      setMapError(error.message || "Mapbox could not initialize.");
-    });
-
-    return () => {
-      cancelled = true;
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-  }, [hasValidToken, token, points.length]);
-
-  return (
-    <section className="section map-section">
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">{t("home.mapEyebrow")}</span>
-          <h2>{t("home.mapTitle")}</h2>
-          <p className="section-lede">{t("home.mapText")}</p>
-        </div>
-        <button className="outline-btn" onClick={() => go("find")}>{t("home.viewAll")}</button>
-      </div>
-
-      <div className="map-frame">
-        {hasValidToken ? (
-          <>
-            <div className="map-canvas" ref={mapContainerRef} aria-label={t("home.mapTitle")} />
-            {!mapReady && !mapError && <div className="map-status">Loading map…</div>}
-            {mapError && (
-              <div className="map-status map-status-error">
-                <strong>Mapbox could not load this map.</strong>
-                <span>Check that the Vercel token is a valid public `pk.` token and allows this domain.</span>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="map-placeholder">
-            <div className="map-placeholder-grid" aria-hidden="true" />
-            <div className="map-placeholder-copy">
-              <span className="map-pin">+</span>
-              <strong>{token ? "Mapbox token is not valid" : t("home.mapNeedsToken")}</strong>
-              <p>{token ? "Replace the Vercel value with a public token beginning with pk." : t("home.mapNeedsTokenText")}</p>
-            </div>
-          </div>
-        )}
-        <div className="map-legend">
-          <span className="legend-dot" /> {points.length} {t("home.mapReports")}
-        </div>
-      </div>
-    </section>
   );
 }
 

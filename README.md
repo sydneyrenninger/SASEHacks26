@@ -49,12 +49,3 @@ The repository is configured as one Vercel project. Vercel builds the React app 
 
 For local development, leave `VITE_API_BASE_URL` unset in `reunite-react` and run the existing Express server on `http://localhost:3000`. Set it only when the frontend and local API run on different hosts.
 
-### Mapbox
-
-The home page map uses Mapbox GL. Add a public Mapbox access token to `reunite-react/.env`:
-
-```env
-VITE_MAPBOX_ACCESS_TOKEN=pk.your-public-token
-```
-
-The token is intended for browser use, but restrict it to your deployed domain in Mapbox. Without a token, the page shows a clear map setup state instead of a broken blank area. The Nepal demo people are fictional; their mapped locations are real landmarks and cities.
